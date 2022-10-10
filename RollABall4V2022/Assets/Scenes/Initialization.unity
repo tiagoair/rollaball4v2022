@@ -166,6 +166,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03a7c76bdded34be9aab7a9e48c5e63c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerAndCameraPrefab: {fileID: 8284075795028435468, guid: f1d682447103a4ee79b4918efc26d58c, type: 3}
-  locationToLoad: Prototype
+  gameState: 0
+  playerAndCameraPrefab: {fileID: 389212873723311636, guid: 45b62f9f708b042108221b9f560a3a50, type: 3}
+  locationToLoad: 2DLevel
   guiScene: GUI

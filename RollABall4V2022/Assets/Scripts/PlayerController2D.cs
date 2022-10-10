@@ -5,7 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController2D : MonoBehaviour
 {
     public float initialTime;
     public int coins = 0;
@@ -21,7 +21,7 @@ public class PlayerController : MonoBehaviour
     private GameControls _gameControls;
     private PlayerInput _playerInput;
     private Camera _mainCamera;
-    private Rigidbody _rigidbody;
+    private Rigidbody2D _rigidbody;
 
     private Vector2 _moveInput;
 
@@ -41,7 +41,7 @@ public class PlayerController : MonoBehaviour
 
         // Referencias dos componentes no mesmo objeto da unity
         _playerInput = GetComponent<PlayerInput>();
-        _rigidbody = GetComponent<Rigidbody>();
+        _rigidbody = GetComponent<Rigidbody2D>();
 
         // Referencia para a camera main guardada na classe Camera
         _mainCamera = Camera.main;
@@ -73,20 +73,9 @@ public class PlayerController : MonoBehaviour
 
     private void Move()
     {
-        // Pega o vetor que aponta na direção em que a camera está olhando e zeramos o componente Y
-        Vector3 camForward = _mainCamera.transform.forward;
-        camForward.y = 0;
-        // Calcula o movimento no eixo da camera para o movimento frente/tras
-        Vector3 moveVertical = camForward * _moveInput.y;
-
-        // Pega o vetor que aponta para o lado direito da camera e zeramos a componente Y
-        Vector3 camRight = _mainCamera.transform.right;
-        camRight.y = 0;
-        // Calcula o movimento no eixo da camera para o movimento esquerda/direita
-        Vector3 moveHorizontal = camRight * _moveInput.x;
-        
         // Adiciona a força no objeto atraves do rigidbody, com intensidade definida por moveSpeed
-        _rigidbody.AddForce((moveVertical + moveHorizontal) * moveSpeed * Time.fixedDeltaTime);
+        _moveInput.y = 0;
+        _rigidbody.AddForce( _moveInput * moveSpeed * Time.fixedDeltaTime);
     }
 
     private void FixedUpdate()
@@ -98,14 +87,12 @@ public class PlayerController : MonoBehaviour
     private void LimitVelocity()
     {
         // pegar a velocidade do player
-        Vector3 velocity = _rigidbody.velocity;
+        Vector2 velocity = _rigidbody.velocity;
 
         // checar se a velocidade está dentro dos limites nos diferentes eixos
         // limitando o eixo x usando ifs, Abs e Sign
         if (Mathf.Abs(velocity.x) > maxVelocity) velocity.x = Mathf.Sign(velocity.x) * maxVelocity;
 
-        // -maxVelocity < velocity.z < maxVelocity
-        velocity.z = Mathf.Clamp(velocity.z, -maxVelocity, maxVelocity);
         
         // alterar a velocidade do player para ficar dentro dos limites
         _rigidbody.velocity = velocity;
@@ -134,12 +121,14 @@ public class PlayerController : MonoBehaviour
 
     private void Jump()
     {
-        if(_isGrounded) _rigidbody.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        if(_isGrounded) _rigidbody.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
     }
 
     private void CheckGround()
     {
-        _isGrounded = Physics.Raycast(transform.position, Vector3.down, rayDistance, groundLayer);
+        RaycastHit2D hit2D = Physics2D.Raycast(transform.position, Vector2.down, rayDistance, groundLayer);
+
+        _isGrounded = hit2D.collider != null;
     }
 
     private void Update()
@@ -154,7 +143,7 @@ public class PlayerController : MonoBehaviour
         Debug.DrawRay(transform.position, Vector3.down * rayDistance, Color.yellow);
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Coin"))
         {
@@ -165,6 +154,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    
     private void CheckVictory()
     {
         if (coins >= 10)
