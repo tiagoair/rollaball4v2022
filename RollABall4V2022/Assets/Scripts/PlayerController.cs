@@ -7,8 +7,9 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
-    public float initialTime;
-    public int coins = 0;
+    public int maxHealth = 100;
+    
+    private int coins = 0;
 
     public float moveSpeed;
     public float maxVelocity;
@@ -27,12 +28,7 @@ public class PlayerController : MonoBehaviour
 
     private bool _isGrounded;
 
-    private float _timeRemaining;
-
-    private void Start()
-    {
-        _timeRemaining = initialTime;
-    }
+    private int _currentHealth;
 
     private void OnEnable()
     {
@@ -48,6 +44,8 @@ public class PlayerController : MonoBehaviour
 
         // atribuindo ao delegate do action triggered no player input
         _playerInput.onActionTriggered += OnActionTriggered;
+
+        _currentHealth = maxHealth;
     }
 
     private void OnDisable()
@@ -144,8 +142,6 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        _timeRemaining -= Time.deltaTime;
-        CheckGameOver();
         CheckGround();
     }
 
@@ -160,31 +156,36 @@ public class PlayerController : MonoBehaviour
         {
             coins++;
             PlayerObserverManager.PlayerCoinsChanged(coins);
-            CheckVictory();
             Destroy(other.gameObject);
         }
-    }
 
-    private void CheckVictory()
-    {
-        if (coins >= 10)
+        if (other.CompareTag("FinishDoor"))
         {
-            if (GameManager.Instance.gameState != GameState.Victory)
-            {
-                GameManager.Instance.CallVictory();
-            }
+            GameManager.Instance.PlayerReachedFinishDoor();
         }
     }
 
-    private void CheckGameOver()
+    public void TakeDamage(int damage)
     {
-        if (_timeRemaining <= 0)
+        _currentHealth -= damage;
+        if (_currentHealth <= 0)
         {
-            if (GameManager.Instance.gameState != GameState.GameOver)
-            {
-                GameManager.Instance.CallGameOver();
-                //GameManager.Instance.LoadEnding();
-            } 
+            _currentHealth = 0;
+            // alguma funcao no game manager pra indicar que o jogador morreu
+        }
+    }
+
+    public void HealHealth(int heal)
+    {
+        _currentHealth += heal;
+        if (_currentHealth >= maxHealth) _currentHealth = maxHealth;
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Spikes"))
+        {
+            TakeDamage(5);
         }
     }
 }
