@@ -15,7 +15,7 @@ namespace UnityTemplateProjects.AI.Enemy
         public override void OnStateExit(Animator animator, AnimatorStateInfo stateInfo,
             int layerIndex)
         {
-            _myEnemyController.ResetPlayerTransform();
+            
         }
 
         public override void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo,

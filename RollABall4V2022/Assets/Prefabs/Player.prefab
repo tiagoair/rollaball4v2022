@@ -158,7 +158,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23fbec612b3b04dc09dad098fb5a582e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 100
+  maxHealth: 5
+  damageForceMultiplier: 0.5
   moveSpeed: 1000
   maxVelocity: 15
   rayDistance: 0.75

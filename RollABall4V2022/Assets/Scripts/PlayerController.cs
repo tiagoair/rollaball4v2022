@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -11,6 +12,8 @@ public class PlayerController : MonoBehaviour
     
     private int coins = 0;
 
+    public float damageForceMultiplier = 0.2f;
+    
     public float moveSpeed;
     public float maxVelocity;
 
@@ -24,6 +27,10 @@ public class PlayerController : MonoBehaviour
     private Camera _mainCamera;
     private Rigidbody _rigidbody;
 
+    public Vector3 MoveDirection => _moveDirection;
+
+    private Vector3 _moveDirection;
+    
     private Vector2 _moveInput;
 
     private bool _isGrounded;
@@ -46,12 +53,21 @@ public class PlayerController : MonoBehaviour
         _playerInput.onActionTriggered += OnActionTriggered;
 
         _currentHealth = maxHealth;
+        
     }
 
     private void OnDisable()
     {
         // retirando a atribuicao ao delegate
         _playerInput.onActionTriggered -= OnActionTriggered;
+    }
+
+    private void Start()
+    {
+        PlayerObserverManager.PlayerHPChanged(_currentHealth);
+
+        coins = 0;
+        PlayerObserverManager.PlayerCoinsChanged(coins);
     }
 
     private void OnActionTriggered(InputAction.CallbackContext obj)
@@ -82,9 +98,10 @@ public class PlayerController : MonoBehaviour
         camRight.y = 0;
         // Calcula o movimento no eixo da camera para o movimento esquerda/direita
         Vector3 moveHorizontal = camRight * _moveInput.x;
-        
+
+        _moveDirection = moveVertical+ moveHorizontal;
         // Adiciona a força no objeto atraves do rigidbody, com intensidade definida por moveSpeed
-        _rigidbody.AddForce((moveVertical + moveHorizontal) * moveSpeed * Time.fixedDeltaTime);
+        _rigidbody.AddForce(_moveDirection * moveSpeed * Time.fixedDeltaTime);
     }
 
     private void FixedUpdate()
@@ -165,7 +182,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, [Optional] Vector3 damageOrigin)
     {
         _currentHealth -= damage;
         if (_currentHealth <= 0)
@@ -173,19 +190,30 @@ public class PlayerController : MonoBehaviour
             _currentHealth = 0;
             // alguma funcao no game manager pra indicar que o jogador morreu
         }
+        else
+        {
+            Vector3 damageDirection = transform.position - damageOrigin;
+            damageDirection = damageDirection.normalized;
+            damageDirection.y = 1;
+            _rigidbody.AddForce(damageDirection * ((float)damage * damageForceMultiplier), ForceMode.Impulse);
+        }
+        
+        PlayerObserverManager.PlayerHPChanged(_currentHealth);
     }
 
     public void HealHealth(int heal)
     {
         _currentHealth += heal;
         if (_currentHealth >= maxHealth) _currentHealth = maxHealth;
+        
+        PlayerObserverManager.PlayerHPChanged(_currentHealth);
     }
 
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Spikes"))
         {
-            TakeDamage(5);
+            TakeDamage(5, collision.contacts[0].point);
         }
     }
 }

@@ -14,4 +14,11 @@ public static class PlayerObserverManager
     {
         OnPlayerCoinsChanged?.Invoke(value);
     }
+
+    public static Action<int> OnPlayerHPChanged;
+
+    public static void PlayerHPChanged(int value)
+    {
+        OnPlayerHPChanged?.Invoke(value);
+    }
 }

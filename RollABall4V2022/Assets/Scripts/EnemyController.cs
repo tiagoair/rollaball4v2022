@@ -46,6 +46,18 @@ public class EnemyController : MonoBehaviour
 
     private int _currentPatrolIndex;
 
+    private MeshRenderer _meshRenderer;
+
+    public Color readyColor;
+    public Color attackColor;
+    public Color cooldownColor;
+
+    public float attackCooldown;
+
+    private float _currentCooldownTime;
+
+    public bool CanAttack => _currentCooldownTime <= 0;
+
     private void Awake()
     {
         _moveSpeed = enemyData.moveSpeed;
@@ -64,6 +76,9 @@ public class EnemyController : MonoBehaviour
         _enemyFSM = GetComponent<Animator>();
         _navMeshAgent = GetComponent<NavMeshAgent>();
         _sphereCollider = GetComponent<SphereCollider>();
+        _meshRenderer = GetComponent<MeshRenderer>();
+
+
     }
 
     // Start is called before the first frame update
@@ -76,10 +91,18 @@ public class EnemyController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        DistanceToPlayer();
+        
         if (_enemyFSM.GetCurrentAnimatorStateInfo(0).IsName("Return"))
         {
             _enemyFSM.SetFloat("ReturnDistance",
                 Vector3.Distance(transform.position, _currentPatrolPoint.position));
+        }
+
+        if (_enemyFSM.GetCurrentAnimatorStateInfo(0).IsName("Attack"))
+        {
+            if (_currentCooldownTime > 0) _currentCooldownTime -= Time.deltaTime;
+            else if (_meshRenderer.material.color != readyColor) _meshRenderer.material.color = readyColor;
         }
     }
 
@@ -91,7 +114,8 @@ public class EnemyController : MonoBehaviour
     public void SetDestinationToPlayer()
     {
         //transform.position += (_playerTransform.position - transform.position).normalized * _moveSpeed * Time.deltaTime;
-        _navMeshAgent.SetDestination(_playerTransform.position);
+        if(_playerTransform!=null)
+            _navMeshAgent.SetDestination(_playerTransform.position);
     }
 
     public void SetDestinationToPatrol()
@@ -102,6 +126,68 @@ public class EnemyController : MonoBehaviour
     public void ResetPlayerTransform()
     {
         _playerTransform = null;
+    }
+
+    public bool CheckPatrolPointReached()
+    {
+        return Vector3.Distance(transform.position, _currentPatrolPoint.position) < 1f;
+    }
+
+    public void UpdatePatrolPoint()
+    {
+        _currentPatrolIndex++;
+
+        if (_currentPatrolIndex >= myPatrolRoute.patrolRoutePoints.Count)
+        {
+            _currentPatrolIndex = 0;
+        }
+
+        _currentPatrolPoint = myPatrolRoute.patrolRoutePoints[_currentPatrolIndex];
+    }
+
+    private IEnumerator DoAttack()
+    {
+        _meshRenderer.material.color = attackColor;
+        if(_playerTransform != null)
+            _playerTransform.GetComponent<PlayerController>().TakeDamage(10, transform.position);
+        _currentCooldownTime = attackCooldown + 1f;
+        yield return new WaitForSeconds(1f);
+        _meshRenderer.material.color = cooldownColor;
+        
+    }
+
+    public void Attack()
+    {
+        StartCoroutine("DoAttack");
+    }
+
+    public void DistanceToPlayer()
+    {
+        if (_enemyFSM.GetCurrentAnimatorStateInfo(0).IsName("Attack") ||
+            _enemyFSM.GetCurrentAnimatorStateInfo(0).IsName("Follow"))
+        {
+            if (_playerTransform != null)
+            {
+                float distance = Vector3.Distance(transform.position, _playerTransform.position);
+                if (_enemyFSM.GetCurrentAnimatorStateInfo(0).IsName("Follow"))
+                {
+                    if(distance < _attackDistance) _enemyFSM.SetTrigger("EnterAttack");
+                }
+
+                if (_enemyFSM.GetCurrentAnimatorStateInfo(0).IsName("Attack"))
+                {
+                    if(distance > _giveUpDistance) _enemyFSM.SetTrigger("LeaveAttack");
+                }
+            }
+            
+        }
+        
+        
+    }
+
+    public void LeaveAttackState()
+    {
+        _meshRenderer.material.color = readyColor;
     }
 
     private void OnTriggerEnter(Collider other)

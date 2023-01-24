@@ -16,6 +16,10 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance;
 
     public GameState gameState;
+
+    public Transform checkpoint;
+    
+    public int playerLives = 3;
     
     [SerializeField] 
     private GameObject playerAndCameraPrefab;
@@ -30,6 +34,8 @@ public class GameManager : MonoBehaviour
     private GameModeSO gameMode;
 
     private float _currentTime;
+
+    private GameObject _playerAndCamera;
     
     private void Awake()
     {
@@ -48,12 +54,15 @@ public class GameManager : MonoBehaviour
     {
         PlayerObserverManager.OnPlayerCoinsChanged += OnPlayerCoinsChanged;
         gameMode.OnGameStateChanged += OnGameStateChanged;
+        PlayerObserverManager.OnPlayerHPChanged += CheckPlayerHP;
     }
 
     private void OnDisable()
     {
         PlayerObserverManager.OnPlayerCoinsChanged -= OnPlayerCoinsChanged;
         gameMode.OnGameStateChanged -= OnGameStateChanged;
+        PlayerObserverManager.OnPlayerHPChanged -= CheckPlayerHP;
+        
     }
 
     private void Start()
@@ -80,11 +89,11 @@ public class GameManager : MonoBehaviour
     private void StartGameFromLevel()
     {
         SceneManager.LoadScene(guiScene, LoadSceneMode.Additive);
-        
+
         Vector3 startPosition = GameObject.Find("PlayerStart").transform.position;
 
-        Instantiate(playerAndCameraPrefab, startPosition, Quaternion.identity);
-
+        _playerAndCamera = Instantiate(playerAndCameraPrefab, startPosition, Quaternion.identity);
+        
         gameState = GameState.Play;
         gameMode.InitializeMode();
         _currentTime = 0;
@@ -126,7 +135,7 @@ public class GameManager : MonoBehaviour
             
             Vector3 startPosition = GameObject.Find("PlayerStart").transform.position;
 
-            Instantiate(playerAndCameraPrefab, startPosition, Quaternion.identity);
+            _playerAndCamera = Instantiate(playerAndCameraPrefab, startPosition, Quaternion.identity);
         };
 
         gameState = GameState.Play;
@@ -146,6 +155,8 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene("GameOver", LoadSceneMode.Additive);
 
         gameState = GameState.GameOver;
+
+        playerLives = 3;
     }
 
     public void LoadEnding()
@@ -176,6 +187,38 @@ public class GameManager : MonoBehaviour
     public void PlayerReachedFinishDoor()
     {
         gameMode.UpdateGameState(0,0,true);
+    }
+
+    public void CheckPlayerHP(int playerHP)
+    {
+        if (playerHP <= 0)
+        {
+            if (playerLives > 0)
+            {
+                playerLives--;
+                RespawnPlayer();
+            }
+            else
+            {
+                CallGameOver();
+            }
+        }
+    }
+
+    public void RespawnPlayer()
+    {
+        Destroy(_playerAndCamera);
+
+        if (checkpoint == null)
+        {
+            Vector3 startPosition = GameObject.Find("PlayerStart").transform.position;
+
+            _playerAndCamera = Instantiate(playerAndCameraPrefab, startPosition, Quaternion.identity);
+        }
+        else
+        {
+            _playerAndCamera = Instantiate(playerAndCameraPrefab, checkpoint.position, Quaternion.identity);
+        }
     }
 
 }
